@@ -1,0 +1,7 @@
+import { ArrowRight, LoaderCircle } from 'lucide-react';
+import { memo } from 'react';
+import { ApiError } from './ApiError';
+
+export const PromptForm = memo(function PromptForm({ form, formError, isLoading, submitError, languageOptions, onChange, onSubmit }) {
+  return <form className="prompt-panel" onSubmit={onSubmit}><div className="panel-heading"><div><p className="section-label">01 / Prompt</p><h2>What are you working through?</h2></div><span className="required">required</span></div><label className="field-label" htmlFor="prompt">Your question</label><textarea id="prompt" value={form.prompt} onChange={(event) => onChange({ ...form, prompt: event.target.value })} placeholder="e.g. How should we prioritize our onboarding improvements?" rows="5" /><div className="form-row"><div className="language-field"><label className="field-label" htmlFor="language">Response language</label><select id="language" value={form.targetLanguage} onChange={(event) => onChange({ ...form, targetLanguage: event.target.value })}>{languageOptions.map(([value, label]) => <option key={value} value={value}>{label} ({value})</option>)}</select></div><button className="submit-button" type="submit" disabled={isLoading}>{isLoading ? <LoaderCircle className="spin" size={17} /> : <ArrowRight size={17} />} {isLoading ? 'Thinking' : 'Generate insights'}</button></div>{formError && <p className="inline-error">{formError}</p>}{submitError && <ApiError error={submitError} />}</form>;
+});
