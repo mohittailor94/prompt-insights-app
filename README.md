@@ -15,6 +15,21 @@ Install the Python backend dependencies:
 ```bash
 python -m pip install -r backend/requirements.txt
 ```
+Configure Neon PostgreSQL before starting the backend. Create a database at [neon.com](https://neon.com/), copy its pooled connection string, and set it as `DATABASE_URL`.
+
+`.env.example`:
+
+```env
+DATABASE_URL=postgresql://USER:PASSWORD@YOUR-NEON-HOST/DBNAME?sslmode=require
+```
+
+PowerShell:
+
+```powershell
+$env:DATABASE_URL = "postgresql://USER:PASSWORD@YOUR-NEON-HOST/DBNAME?sslmode=require"
+```
+
+The backend creates the `prompt_insights` table automatically on the first successful request. Keep the real Neon URL in an environment variable and do not commit it to `README.md` or source control.
 
 Start the frontend and backend together:
 
@@ -55,7 +70,7 @@ frontend/
     validation/
       promptSchema.js        Shared Zod validation contract
 backend/
-  main.py                    FastAPI API and mock insight source
+  main.py                    FastAPI API and Neon PostgreSQL integration
   requirements.txt           Python backend dependencies
 ```
 
@@ -63,12 +78,12 @@ backend/
 
 - Prompt submission uses a real HTML form and Zod schema validation.
 - The prompt and target language are validated before any API call.
-- RTK Query manages request, loading, error, caching, and pagination states.
+- Redux Toolkit and RTK Query manage API state, loading, errors, caching, and pagination.
 - Search is debounced by 350 ms.
 - Pagination and search parameters are part of the RTK Query cache key.
 - `PromptForm`, `ResultsPanel`, and `InsightCard` are memoized where useful.
 - Stable query arguments and callbacks reduce unnecessary child renders.
-- Cached query results remain available for five minutes after becoming unused.
+- Insight results are persisted in Neon PostgreSQL.
 
 ## API Contract
 

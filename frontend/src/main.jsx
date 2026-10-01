@@ -7,8 +7,8 @@ import App from './App';
 import './styles.css';
 
 const store = configureStore({
-  reducer: { [api.reducerPath]: api.reducer },
-  middleware: (getDefaultMiddleware) => getDefaultMiddleware().concat(api.middleware),
+	reducer: { [api.reducerPath]: api.reducer },
+	middleware: (getDefaultMiddleware) => getDefaultMiddleware().concat(api.middleware),
 });
 
 createRoot(document.getElementById('root')).render(<React.StrictMode><Provider store={store}><App /></Provider></React.StrictMode>);

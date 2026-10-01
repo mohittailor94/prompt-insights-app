@@ -1,4 +1,5 @@
 from math import ceil
+import os
 from typing import Annotated, Any
 from uuid import UUID, uuid4
 
@@ -6,11 +7,16 @@ from fastapi import FastAPI, Query, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+import psycopg
+from dotenv import load_dotenv
+from psycopg.rows import dict_row
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
+load_dotenv()
 SUPPORTED_LANGUAGES = {"en", "de", "fr", "es", "it"}
 INVALID_LANGUAGE_MESSAGE = "Target language is not supported"
+DATABASE_URL = os.getenv("DATABASE_URL")
 
 
 class PromptRequest(BaseModel):
@@ -48,6 +54,64 @@ app.add_middleware(
 
 def error_response(status: int, error: str, message: str) -> JSONResponse:
     return JSONResponse(status_code=status, content={"error": error, "message": message})
+
+
+def database_connection() -> psycopg.Connection:
+    if not DATABASE_URL:
+        raise RuntimeError("DATABASE_URL is not configured")
+    return psycopg.connect(DATABASE_URL, row_factory=dict_row)
+
+
+def ensure_database() -> None:
+    with database_connection() as connection:
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS prompt_insights (
+                id TEXT NOT NULL,
+                context_id UUID NOT NULL,
+                prompt TEXT NOT NULL,
+                target_language TEXT NOT NULL,
+                title TEXT NOT NULL,
+                detail TEXT NOT NULL,
+                confidence INTEGER NOT NULL,
+                category TEXT NOT NULL,
+                created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                PRIMARY KEY (context_id, id)
+            )
+            """
+        )
+
+
+def save_insights(context_id: UUID, prompt: str, target_language: str, insights: list[dict[str, Any]]) -> None:
+    with database_connection() as connection, connection.cursor() as cursor:
+        cursor.executemany(
+            """
+            INSERT INTO prompt_insights
+                (id, context_id, prompt, target_language, title, detail, confidence, category)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+            ON CONFLICT (context_id, id) DO NOTHING
+            """,
+            [
+                (insight["id"], context_id, prompt, target_language, insight["title"], insight["detail"], insight["confidence"], insight["category"])
+                for insight in insights
+            ],
+        )
+
+
+def load_insights(prompt: str, target_language: str, search: str) -> list[dict[str, Any]]:
+    with database_connection() as connection:
+        rows = connection.execute(
+            """
+            SELECT id, title, detail, confidence, category
+            FROM prompt_insights
+            WHERE prompt = %s
+              AND target_language = %s
+              AND (LOWER(title || ' ' || detail || ' ' || category) LIKE LOWER(%s))
+            ORDER BY created_at, id
+            """,
+            (prompt, target_language, f"%{search}%"),
+        ).fetchall()
+    return list(rows)
 
 
 def needs_clarification(prompt: str) -> bool:
@@ -110,6 +174,8 @@ async def submit_prompt(payload: PromptRequest) -> dict[str, Any]:
         return {"status": "NEEDS_CLARIFICATION", "message": "Please provide more details so the service can return useful insights."}
     context_id = payload.contextId or uuid4()
     insights = create_insights(payload.prompt, payload.targetLanguage)
+    ensure_database()
+    save_insights(context_id, payload.prompt, payload.targetLanguage, insights)
     return {
         "status": "SUCCESS",
         "contextId": str(context_id),
@@ -131,13 +197,8 @@ async def get_insights(
     if target_language not in SUPPORTED_LANGUAGES:
         return error_response(400, "INVALID_LANGUAGE", INVALID_LANGUAGE_MESSAGE)
 
-    all_insights = create_insights(prompt, target_language)
-    search_text = search.lower()
-    filtered = [
-        insight
-        for insight in all_insights
-        if search_text in f"{insight['title']} {insight['detail']} {insight['category']}".lower()
-    ]
+    ensure_database()
+    filtered = load_insights(prompt, target_language, search)
     current_page = parse_page(page, 1)
     size = parse_page(page_size, 10, maximum=20)
     start = (current_page - 1) * size

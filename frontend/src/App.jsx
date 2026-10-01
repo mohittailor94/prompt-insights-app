@@ -31,7 +31,7 @@ export default function App() {
     setPage(1);
     const response = await submitPrompt(parsed.data);
     if (!response.error && response.data.status === 'SUCCESS') setSession({ ...parsed.data, contextId: response.data.contextId });
-  }, [form, submitPrompt]);
+  }, [form]);
 
   const handleFormChange = useCallback((nextForm) => setForm(nextForm), []);
   const handleSearchChange = useCallback((nextSearch) => setSearch(nextSearch), []);
