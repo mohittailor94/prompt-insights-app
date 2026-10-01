@@ -1,6 +1,6 @@
 # Signal / AI Insights Workbench
 
-A React client and Express middleware API for submitting prompts, handling clarification states, and displaying paginated AI-style insights from local mock data.
+A React client and FastAPI API for submitting prompts, handling clarification states, and displaying paginated AI-style insights from local mock data.
 
 ## Getting Started
 
@@ -8,6 +8,12 @@ Install dependencies:
 
 ```bash
 npm install
+```
+
+Install the Python backend dependencies:
+
+```bash
+python -m pip install -r backend/requirements.txt
 ```
 
 Start the frontend and backend together:
@@ -30,12 +36,14 @@ Run the API server directly:
 npm start
 ```
 
-The API listens on port `3001`. Vite proxies `/api` requests from port `5173` to the API during development.
+The FastAPI server listens on port `3001`. Vite proxies `/api` requests from port `5173` to the API during development.
 
 ## Architecture
 
 ```text
-src/
+frontend/
+  index.html
+  src/
   App.jsx                    Application state and workflow orchestration
   components/
     PromptForm.jsx           Prompt form and submit state
@@ -44,9 +52,11 @@ src/
     ApiError.jsx              Structured API error presentation
   services/
     api.js                   RTK Query API and cache configuration
-  validation/
-    promptSchema.js          Shared Zod validation contract
-server.js                    Express middleware API and mock insight source
+    validation/
+      promptSchema.js        Shared Zod validation contract
+backend/
+  main.py                    FastAPI API and mock insight source
+  requirements.txt           Python backend dependencies
 ```
 
 ## Frontend Behavior
@@ -128,6 +138,6 @@ Supported languages are `en`, `de`, `fr`, `es`, and `it`.
 - React
 - Redux Toolkit and RTK Query
 - Zod
-- Express
+- FastAPI
 - Vite
 - Lucide React

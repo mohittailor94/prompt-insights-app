@@ -3,14 +3,12 @@
   "private": true,
   "version": "1.0.0",
   "scripts": {
-    "dev": "concurrently \"node server.js\" \"vite\"",
+    "dev": "concurrently \"python -m uvicorn backend.main:app --reload --port 3001\" \"vite\"",
     "build": "vite build",
-    "start": "node server.js"
+    "start": "python -m uvicorn backend.main:app --port 3001"
   },
   "dependencies": {
     "@reduxjs/toolkit": "^2.12.0",
-    "cors": "^2.8.5",
-    "express": "^4.19.2",
     "lucide-react": "^1.46.0",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
